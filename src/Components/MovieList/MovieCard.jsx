@@ -2,22 +2,29 @@ import React from 'react'
 import './MovieCard.css';
 import Star from '../../assets/star.png';
 
-const MovieCard = () => {
+function truncate(text, maxLength) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  const truncated = text.slice(0, maxLength);
+  return truncated.slice(0, truncated.lastIndexOf(' ')) + '...';
+}
+
+const MovieCard = ({movie}) => {
   return (
-    <a href="#" className="movie_card">
+    <a href={`https://www.themoviedb.org/movie/${movie.id}`} className="movie_card">
       <img 
-        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSefQTwEhNM3vNw5sGZRdEnXo5kg1TSQj3Cgg&s"
+        src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
         alt="Movie Poster"
         className="movie_poster"
         />
         <div className="movie_details">
-            <h3 className='movie_details_heading'>Movie Title</h3>
+            <h3 className='movie_details_heading'>{movie.original_title}</h3>
             <div className="align_center movie_date_rate">
-                <p>Release Date: 2023-01-01</p>
-                <p>Rating: 8.5 <img src={Star} alt="rating icon"
+                <p>Release Date: {movie.release_date}</p>
+                <p>Rating: {movie.vote_average} <img src={Star} alt="rating icon"
                 className="card_emoji" /></p>
             </div>
-            <p className="movie_description">This is a brief description of the movie. It gives an overview of the plot and main themes.</p>
+            <p className="movie_description">{truncate(movie.overview, 400)}</p>
         </div>
      </a>
   )
