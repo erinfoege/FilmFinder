@@ -3,8 +3,11 @@ import './MovieList.css';
 import Star from '../../assets/star.png';
 import MovieCard from './MovieCard';
 
+const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+
 const MovieList = () => {
     const [movies, setMovies] = useState([]);
+    const [filter, setFilter] = useState(0);
 
     useEffect(() => {
         fetchMovies();
@@ -12,7 +15,7 @@ const MovieList = () => {
 
     const fetchMovies = async () => {
         try {
-        const response = await fetch('https://api.themoviedb.org/3/movie/popular?api_key=a7bfaddbf7757c5fe227b8a0be59dd7f');
+        const response = await fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}`);
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
@@ -24,6 +27,12 @@ const MovieList = () => {
         }
     }
 
+    const handleFilter = rate => {
+        setMinRating(rate);
+        const filtered = movies.filter(movie=> movie.vote_average >= rate);
+        setMovies(filtered);
+    }   
+
     return (
         <section className="movie_list">
             <header className="align_center movie_list_header">
@@ -32,9 +41,9 @@ const MovieList = () => {
                 </h2>
             <div className='align_center movie_list_fs'>
                 <ul className="align_center movie_filter">
-                    <li className="movie_filter_item active">8+ Star</li>
-                    <li className="movie_filter_item">7+ Star</li>
-                    <li className="movie_filter_item">6+ Star</li>
+                    <li className="movie_filter_item active" onClick={() => filterMovies(8)}>8+ Star</li>
+                    <li className="movie_filter_item" onClick={() => filterMovies(7)}>7+ Star</li>
+                    <li className="movie_filter_item" onClick={() => filterMovies(6)}>6+ Star</li>
                 </ul>
 
                 <select name="" id="" className="movie_sorting">
