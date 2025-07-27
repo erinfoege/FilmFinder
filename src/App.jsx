@@ -1,14 +1,22 @@
-import React from 'react'
+import React,{useState} from 'react'
 import './App.css';
 import Navbar from './Components/Navbar/Navbar';
 import MovieList from './Components/MovieList/MovieList';
 
-export const App = () => {
+const App = () => {
+  const [category, setCategory] = useState('popular');
+
   return (
     <div className='app'>
-      <Navbar/>
+      <Navbar
+        activeCategory={category}
+        onCategoryChange={setCategory}
+      />
 
-      <MovieList/>
+      <MovieList
+        category={category}
+      />
+
     </div>
   );
 };

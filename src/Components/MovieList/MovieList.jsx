@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback
+} from 'react';
 import './MovieList.css';
 import Star from '../../assets/star.png';
 import MovieCard from './MovieCard';
@@ -6,82 +11,85 @@ import FilterGroup from './FilterGroup';
 
 const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
-const MovieList = () => {
-  const [movies, setMovies] = useState([]);
+const MovieList = ({ category }) => {
+  const [movies, setMovies]       = useState([]);
   const [minRating, setMinRating] = useState(0);
-  const [sort, setSort] = useState({ by: 'default', order: 'asc' });
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [sort, setSort]           = useState({
+    by: 'default',
+    order: 'asc'
+  });
+  const [page, setPage]           = useState(1);
+  const [loading, setLoading]     = useState(false);
+  const sentinelRef               = useRef(null);
 
-  // Build a Discover URL that defaults to popularity.desc
-  const buildUrl = ({ page, sortBy, sortOrder, minRating }) => {
-    const params = new URLSearchParams({
-      api_key: apiKey,
-      page,
-      sort_by:
-        sortBy === 'default'
-          ? 'popularity.desc'
-          : `${sortBy}.${sortOrder}`,
-    });
-    if (minRating > 0) {
-      params.set('vote_average.gte', minRating);
-    }
-    return `https://api.themoviedb.org/3/discover/movie?${params}`;
-  };
-
-  // Whenever filter or sort changes, clear existing results & reset to page 1
+  // Reset when category changes
   useEffect(() => {
     setMovies([]);
     setPage(1);
-  }, [minRating, sort]);
+  }, [category]);
 
-  // Fetch new page when page, filter or sort changes
+  // Fetch each page
   useEffect(() => {
     const fetchMovies = async () => {
-      if (loading) return;
       setLoading(true);
-
       try {
-        const url = buildUrl({
-          page,
-          sortBy: sort.by,
-          sortOrder: sort.order,
-          minRating,
-        });
-        const res = await fetch(url);
+        const res = await fetch(
+          `https://api.themoviedb.org/3/movie/${category}` +
+            `?api_key=${apiKey}&page=${page}`
+        );
         const data = await res.json();
-
-        // Merge + dedupe by movie.id
-        setMovies(prev => {
-          const merged = [...prev, ...data.results];
-          const uniqueMap = new Map(merged.map(m => [m.id, m]));
-          return Array.from(uniqueMap.values());
-        });
+        setMovies(prev =>
+          page === 1 ? data.results : [...prev, ...data.results]
+        );
       } catch (err) {
-        console.error('Fetch error:', err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchMovies();
-  }, [page, minRating, sort]);
+  }, [category, page]);
 
-  // Infinite scroll
-  useEffect(() => {
-    const onScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.body.offsetHeight - 300;
-      if (nearBottom && !loading) {
+  // When the sentinel scrolls into view, load next page
+  const onIntersect = useCallback(
+    ([entry]) => {
+      if (entry.isIntersecting && !loading) {
         setPage(p => p + 1);
       }
-    };
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [loading]);
+    },
+    [loading]
+  );
 
-  // Sort dropdown handler
+  useEffect(() => {
+    const observer = new IntersectionObserver(onIntersect, {
+      rootMargin: '200px'
+    });
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+    return () => observer.disconnect();
+  }, [onIntersect]);
+
+  // Filtering & sorting remain purely client-side
+  const filtered = movies.filter(m =>
+    m.vote_average >= minRating
+  );
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort.by === 'release_date') {
+      const da = new Date(a.release_date);
+      const db = new Date(b.release_date);
+      return sort.order === 'asc' ? da - db : db - da;
+    }
+    if (sort.by === 'vote_average') {
+      return sort.order === 'asc'
+        ? a.vote_average - b.vote_average
+        : b.vote_average - a.vote_average;
+    }
+    return 0;
+  });
+
   const handleSort = e => {
     const { name, value } = e.target;
     setSort(prev => ({ ...prev, [name]: value }));
@@ -91,7 +99,8 @@ const MovieList = () => {
     <section className="movie_list">
       <header className="align_center movie_list_header">
         <h2 className="align_center movie_list_heading">
-          Popular <img src={Star} alt="star" className="navbar_emoji" />
+          {category.replace('_', ' ').toUpperCase()}
+          <img src={Star} alt="star icon" className="navbar_emoji" />
         </h2>
 
         <div className="align_center movie_list_fs">
@@ -107,7 +116,7 @@ const MovieList = () => {
             value={sort.by}
             className="movie_sorting"
           >
-            <option value="default">Sort By</option>
+            <option value="default">SortBy</option>
             <option value="release_date">Date</option>
             <option value="vote_average">Rating</option>
           </select>
@@ -125,13 +134,15 @@ const MovieList = () => {
       </header>
 
       <div className="movie_cards">
-        {movies.map(movie => (
+        {sorted.map(movie => (
           <MovieCard key={movie.id} movie={movie} />
         ))}
-        {loading && (
-          <p className="loading_indicator">Loading more movies…</p>
-        )}
       </div>
+
+      {/* sentinel for IntersectionObserver */}
+      <div ref={sentinelRef} />
+
+      {loading && <p className="loading_indicator">Loading more…</p>}
     </section>
   );
 };

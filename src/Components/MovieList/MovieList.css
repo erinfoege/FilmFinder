@@ -23,7 +23,8 @@
 
 .movie_filter_item.active {
    border-bottom: 1px solid white;
-   font-weight: 600;
+   font-style: bold;
+   /* font-weight: 600; */
 }
 
 .movie_sorting{

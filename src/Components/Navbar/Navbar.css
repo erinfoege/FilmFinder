@@ -17,6 +17,22 @@
     display: flex;
     align-items: center;
 }
+.navbar_links button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  color:#db89b5;
+}
+.navbar_links button:hover {
+    font-weight: bold;
+}
+
+.navbar_links .active {
+  border-bottom: 2px solid white;
+  /* font-weight: bold; */
+}
 
 .navbar_links > a{
     display: flex;
